@@ -40,8 +40,8 @@ export const ProductSearch = () => {
         setAiMessage('');
         try {
             let url = isAiMode
-                ? `http://localhost:3000/api/chat`
-                : `http://localhost:3000/api/products?source=local`;
+                ? `https://vottam-api-595396735241.us-central1.run.app/api/chat`
+                : `https://vottam-api-595396735241.us-central1.run.app/api/products?source=local`;
 
             let options = {};
 
@@ -75,7 +75,7 @@ export const ProductSearch = () => {
 
     const activeSwap = async (product) => {
         try {
-            const res = await fetch(`http://localhost:3000/api/products/${product.food_id}/swap`);
+            const res = await fetch(`https://vottam-api-595396735241.us-central1.run.app/api/products/${product.food_id}/swap`);
             const data = await res.json();
             if (data && data.id) {
                 setSwapSuggestion({ original: product, better: data });

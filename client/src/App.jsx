@@ -2,21 +2,21 @@
  * VOTTAM - AI-Powered Shopping Agent
  * 
  * Main App Component
- * Sets up React Router for client-side navigation.
+ * Uses HashRouter for GitHub Pages compatibility (static hosting).
  * 
  * Routes:
- * - /home (default) - ProductSearch page with AI recommendations
- * - /scan - Camera scanner for product barcodes
+ * - #/home (default) - ProductSearch page with AI recommendations
+ * - #/scan - Camera scanner for product barcodes
  */
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Scanner } from './pages/Scanner';
 import { ProductSearch } from './components/ProductSearch';
 
 function App() {
   return (
-    // basename is required for GitHub Pages subdirectory deployment
-    <Router basename="/spinning-curiosity">
+    // HashRouter uses URL hash (#) - works with static hosting like GitHub Pages
+    <Router>
       <Routes>
         {/* Camera scanner page */}
         <Route path="/scan" element={<Scanner />} />

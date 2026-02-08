@@ -275,6 +275,166 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
+// ==========================================
+// PHASE 3: AI Agent Personalization Endpoints
+// ==========================================
+
+// Log scan history - track what users view/scan
+app.post('/api/scan-history', (req, res) => {
+    const { userId, productId, productName, action } = req.body;
+
+    try {
+        const stmt = db.prepare(`
+            INSERT INTO scan_history (user_id, product_id, product_name, action)
+            VALUES (?, ?, ?, ?)
+        `);
+        stmt.run(userId, productId || null, productName, action || 'viewed');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Failed to log scan:', err);
+        res.status(500).json({ error: 'Failed to log scan' });
+    }
+});
+
+// Get user's scan history
+app.get('/api/user/:userId/history', (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const history = db.prepare(`
+            SELECT sh.*, p.brand, p.category, ps.health_score
+            FROM scan_history sh
+            LEFT JOIN products p ON sh.product_id = p.id
+            LEFT JOIN product_scores ps ON sh.product_id = ps.product_id
+            WHERE sh.user_id = ?
+            ORDER BY sh.scanned_at DESC
+            LIMIT 20
+        `).all(userId);
+
+        res.json(history);
+    } catch (err) {
+        console.error('Failed to get history:', err);
+        res.status(500).json({ error: 'Failed to get history' });
+    }
+});
+
+// Personalized AI Chat - uses user preferences + scan history
+app.post('/api/chat/personalized', async (req, res) => {
+    const { query, userId } = req.body;
+
+    try {
+        // Get user preferences
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        const preferences = user ? JSON.parse(user.preferences || '{}') : {};
+
+        // Get recent scan history
+        const history = db.prepare(`
+            SELECT product_name, action, scanned_at 
+            FROM scan_history 
+            WHERE user_id = ? 
+            ORDER BY scanned_at DESC 
+            LIMIT 5
+        `).all(userId);
+
+        // Search products
+        const products = db.prepare(`
+            SELECT 
+                p.id, p.brand, p.name, p.image_url, p.category, 
+                p.weight_grams, p.price_local_currency,
+                ps.health_score, ps.smartest_value_score
+            FROM products p
+            LEFT JOIN product_scores ps ON p.id = ps.product_id
+            WHERE p.name LIKE ? OR p.brand LIKE ? OR p.category LIKE ?
+            ORDER BY ps.health_score DESC
+            LIMIT 10
+        `).all(`%${query}%`, `%${query}%`, `%${query}%`);
+
+        // Build personalized context for AI
+        const context = {
+            userDiet: preferences.diet || 'none specified',
+            healthGoals: preferences.health || 'general wellness',
+            recentlyViewed: history.map(h => h.product_name).filter(Boolean).join(', ') || 'nothing yet',
+            query: query
+        };
+
+        // Generate personalized AI response
+        const message = await aiService.generatePersonalizedInsight(query, products, context);
+
+        res.json({
+            message,
+            products: products.slice(0, 5),
+            personalization: {
+                diet: context.userDiet,
+                healthGoals: context.healthGoals,
+                historySize: history.length
+            }
+        });
+
+    } catch (err) {
+        console.error('Personalized chat error:', err);
+        res.status(500).json({ error: 'Personalized chat failed' });
+    }
+});
+
+// Get personalized recommendations based on history
+app.get('/api/user/:userId/recommendations', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        const preferences = user ? JSON.parse(user.preferences || '{}') : {};
+
+        // Get categories user has shown interest in
+        const frequentCategories = db.prepare(`
+            SELECT p.category, COUNT(*) as count
+            FROM scan_history sh
+            JOIN products p ON sh.product_id = p.id
+            WHERE sh.user_id = ?
+            GROUP BY p.category
+            ORDER BY count DESC
+            LIMIT 3
+        `).all(userId);
+
+        // Get top products in those categories (or all if no history)
+        let recommendations;
+        if (frequentCategories.length > 0) {
+            const categories = frequentCategories.map(c => c.category);
+            recommendations = db.prepare(`
+                SELECT 
+                    p.id, p.brand, p.name, p.image_url, p.category,
+                    p.price_local_currency, ps.health_score
+                FROM products p
+                LEFT JOIN product_scores ps ON p.id = ps.product_id
+                WHERE p.category IN (${categories.map(() => '?').join(',')})
+                ${preferences.diet === 'Vegan' ? "AND p.dietary_type = 'Vegan'" : ''}
+                ORDER BY ps.health_score DESC
+                LIMIT 6
+            `).all(...categories);
+        } else {
+            recommendations = db.prepare(`
+                SELECT 
+                    p.id, p.brand, p.name, p.image_url, p.category,
+                    p.price_local_currency, ps.health_score
+                FROM products p
+                LEFT JOIN product_scores ps ON p.id = ps.product_id
+                ${preferences.diet === 'Vegan' ? "WHERE p.dietary_type = 'Vegan'" : ''}
+                ORDER BY ps.health_score DESC
+                LIMIT 6
+            `).all();
+        }
+
+        res.json({
+            recommendations,
+            basedOn: frequentCategories.map(c => c.category),
+            userPreferences: preferences
+        });
+
+    } catch (err) {
+        console.error('Recommendations error:', err);
+        res.status(500).json({ error: 'Failed to get recommendations' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });

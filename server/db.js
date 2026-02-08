@@ -43,6 +43,17 @@ function initDb() {
         password TEXT NOT NULL,
         preferences TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS scan_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        product_id INTEGER,
+        product_name TEXT,
+        action TEXT CHECK(action IN ('viewed', 'scanned', 'swapped', 'purchased')),
+        scanned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(product_id) REFERENCES products(id)
+    );
   `;
 
     db.exec(schema);

@@ -46,11 +46,16 @@ export const ProductSearch = () => {
             let options = {};
 
             if (isAiMode) {
+                // Use personalized AI endpoint with user context
                 options = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: term || 'healthy products' })
+                    body: JSON.stringify({
+                        query: term || 'healthy products',
+                        userId: 1 // Demo user - in production, get from auth context
+                    })
                 };
+                url = `https://vottam-api-595396735241.us-central1.run.app/api/chat/personalized`;
             } else {
                 if (term) url += `&q=${encodeURIComponent(term)}`;
                 if (category && category !== 'All') url += `&category=${encodeURIComponent(category)}`;
@@ -142,7 +147,7 @@ export const ProductSearch = () => {
                         </div>
                         <button
                             type="button"
-                            onClick={() => window.location.href = '/scan'}
+                            onClick={() => navigate('/scan')}
                             className="p-3 bg-gray-100 rounded-xl text-gray-500 hover:text-green-600 hover:bg-green-50 transition-colors"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

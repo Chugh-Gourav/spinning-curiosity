@@ -91,6 +91,68 @@ class AIService {
         const best = products.reduce((prev, current) => (prev.scores.health_score > current.scores.health_score) ? prev : current);
         return `I found ${products.length} options. The best choice is ${best.food_name} with a health score of ${best.scores.health_score}.`;
     }
+
+    // NEW: Personalized AI insight using user context
+    async generatePersonalizedInsight(query, products, context) {
+        if (!products.length) {
+            return `I couldn't find "${query}" in our database. Try searching for milk, protein, or spreads.`;
+        }
+
+        if (this.genAI) {
+            const prompt = `
+                You are VOTTAM, a personalized shopping AI assistant. Be friendly and helpful.
+                
+                USER CONTEXT:
+                - Diet preference: ${context.userDiet}
+                - Health goals: ${context.healthGoals}
+                - Recently viewed products: ${context.recentlyViewed}
+                
+                USER SEARCH: "${query}"
+                
+                MATCHING PRODUCTS:
+                ${JSON.stringify(products.slice(0, 5).map(p => ({
+                name: p.name,
+                brand: p.brand,
+                health_score: p.health_score,
+                price: p.price_local_currency
+            })), null, 2)}
+                
+                INSTRUCTIONS:
+                1. Recommend the BEST product for THIS specific user based on their diet and health goals
+                2. Explain WHY it's best for them (mention their diet/health if relevant)
+                3. If they have scan history, acknowledge their past interests briefly
+                4. Keep response to 2-3 sentences max
+                5. Be conversational and helpful, not robotic
+            `;
+
+            try {
+                const result = await this.genAI.models.generateContent({
+                    model: "gemini-1.5-flash",
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                });
+                return result.response.text();
+            } catch (e) {
+                console.error('Personalized AI Error:', e);
+            }
+        }
+
+        // Mock personalized fallback
+        const best = products.reduce((prev, current) =>
+            (prev.health_score > current.health_score) ? prev : current
+        );
+
+        let response = `Based on your ${context.userDiet} diet`;
+        if (context.healthGoals !== 'general wellness') {
+            response += ` and ${context.healthGoals} goals`;
+        }
+        response += `, I recommend ${best.brand} ${best.name} with a health score of ${best.health_score}.`;
+
+        if (context.recentlyViewed !== 'nothing yet') {
+            response += ` Since you've been checking out similar products, this should be a great fit!`;
+        }
+
+        return response;
+    }
 }
 
 module.exports = new AIService();

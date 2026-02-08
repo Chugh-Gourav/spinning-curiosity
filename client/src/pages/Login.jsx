@@ -15,7 +15,7 @@ export function Login({ onLogin }) {
         setError('');
 
         try {
-            const response = await fetch('/api/login', {
+            const response = await fetch('https://vottam-api-595396735241.us-central1.run.app/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

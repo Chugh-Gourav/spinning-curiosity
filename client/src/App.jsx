@@ -8,7 +8,7 @@ function App() {
   const [user, setUser] = useState(null);
 
   return (
-    <Router>
+    <Router basename="/spinning-curiosity">
       <Routes>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="/scan" element={user ? <Scanner /> : <Navigate to="/login" />} />

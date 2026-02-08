@@ -35,6 +35,24 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// Get all users (for demo user switcher)
+app.get('/api/users', (req, res) => {
+    try {
+        const users = db.prepare(`
+            SELECT id, username, preferences FROM users
+        `).all();
+
+        res.json(users.map(u => ({
+            id: u.id,
+            username: u.username,
+            preferences: JSON.parse(u.preferences || '{}')
+        })));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch users' });
+    }
+});
+
 // Import Services
 const fatSecretService = require('./services/fatsecret');
 const aiService = require('./services/ai');

@@ -22,17 +22,31 @@ const HealthBadge = ({ score }) => {
 };
 
 export const ProductSearch = () => {
+    const navigate = useNavigate();
     const [query, setQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [maxPrice, setMaxPrice] = useState(10); // Default max price
+    const [maxPrice, setMaxPrice] = useState(10);
     const [hasSearched, setHasSearched] = useState(false);
     const [swapSuggestion, setSwapSuggestion] = useState(null);
     const [isAiMode, setIsAiMode] = useState(false);
     const [aiMessage, setAiMessage] = useState('');
+    const [users, setUsers] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
 
     const filters = ['All', 'Spreads', 'Milk Alternatives', 'Vegan'];
+
+    // Fetch available users on mount
+    useEffect(() => {
+        fetch('https://vottam-api-595396735241.us-central1.run.app/api/users')
+            .then(res => res.json())
+            .then(data => {
+                setUsers(data);
+                if (data.length > 0) setSelectedUser(data[0]);
+            })
+            .catch(console.error);
+    }, []);
 
     const searchProducts = async (term, category) => {
         setLoading(true);
@@ -52,7 +66,7 @@ export const ProductSearch = () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         query: term || 'healthy products',
-                        userId: 1 // Demo user - in production, get from auth context
+                        userId: selectedUser?.id || 1
                     })
                 };
                 url = `https://vottam-api-595396735241.us-central1.run.app/api/chat/personalized`;
@@ -109,16 +123,28 @@ export const ProductSearch = () => {
             <header className="bg-white shadow-sm sticky top-0 z-10">
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
                     <h1 className="text-xl font-bold text-green-600 tracking-tight">VOTTAM</h1>
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold">
-                        J
-                    </div>
+                    {/* User Dropdown */}
+                    <select
+                        value={selectedUser?.id || ''}
+                        onChange={(e) => {
+                            const user = users.find(u => u.id === parseInt(e.target.value));
+                            setSelectedUser(user);
+                        }}
+                        className="px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-sm font-medium text-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                        {users.map(user => (
+                            <option key={user.id} value={user.id}>
+                                {user.username} ({user.preferences?.diet})
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Search Bar */}
                 <div className="max-w-md mx-auto px-4 pb-4">
                     <div className="flex justify-end mb-2">
                         <label className="flex items-center cursor-pointer gap-2">
-                            <span className={`text-xs font-bold ${isAiMode ? 'text-purple-600' : 'text-gray-400'}`}>Gen AI Search ✨</span>
+                            <span className={`text-xs font-bold ${isAiMode ? 'text-purple-600' : 'text-gray-400'}`}>AI Search ✨</span>
                             <div className="relative">
                                 <input
                                     type="checkbox"
@@ -214,50 +240,59 @@ export const ProductSearch = () => {
                 ) : products.length === 0 ? (
                     <div className="text-center py-10 text-gray-400">No products found.</div>
                 ) : (
-                    products.map(product => (
-                        <div key={product.food_id || product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch">
-                            <div className="w-24 h-24 bg-gray-50 rounded-xl flex-shrink-0 p-2 flex items-center justify-center self-center">
-                                <img
-                                    src={product.product_image}
-                                    alt={product.food_name}
-                                    className="max-w-full max-h-full object-contain mix-blend-multiply"
-                                    onError={(e) => e.target.src = 'https://placehold.co/100?text=No+Image'}
-                                />
-                            </div>
+                    products.map(product => {
+                        // Normalize field names between different API responses
+                        const name = product.food_name || product.name;
+                        const brand = product.brand_name || product.brand;
+                        const image = product.product_image || product.image_url;
+                        const price = product.price_local_currency || 0;
+                        const healthScore = product.scores?.health_score || product.health_score || 50;
 
-                            <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
-                                <div>
-                                    <div className="flex justify-between items-start gap-2">
-                                        <h3 className="font-bold text-gray-900 leading-tight text-lg truncate flex-1" title={product.food_name}>
-                                            {product.food_name}
-                                        </h3>
-                                        <HealthBadge score={product.scores?.health_score || 50} />
-                                    </div>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">{product.brand_name}</p>
+                        return (
+                            <div key={product.food_id || product.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch">
+                                <div className="w-24 h-24 bg-gray-50 rounded-xl flex-shrink-0 p-2 flex items-center justify-center self-center">
+                                    <img
+                                        src={image}
+                                        alt={name}
+                                        className="max-w-full max-h-full object-contain mix-blend-multiply"
+                                        onError={(e) => e.target.src = 'https://placehold.co/100?text=No+Image'}
+                                    />
                                 </div>
 
-                                <div className="flex items-end justify-between mt-3">
+                                <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                                     <div>
-                                        <div className="text-lg font-bold text-gray-900">{((product.food_description && product.food_description.split('|')[1]) || '0.00').trim()}</div>
-                                        {/* Smart Value Display */}
-                                        <div className="text-xs text-green-600 font-medium">
-                                            {product.nutrition?.protein ? `${product.nutrition.protein}g Protein` : 'High Value'}
+                                        <div className="flex justify-between items-start gap-2">
+                                            <h3 className="font-bold text-gray-900 leading-tight text-lg truncate flex-1" title={name}>
+                                                {name}
+                                            </h3>
+                                            <HealthBadge score={healthScore} />
                                         </div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">{brand}</p>
                                     </div>
 
-                                    {/* Smart Swap Trigger */}
-                                    {(product.scores?.health_score < 75) && (
-                                        <button
-                                            onClick={() => activeSwap(product)}
-                                            className="text-xs font-bold text-white bg-green-600 px-3 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                                        >
-                                            Find Better ➜
-                                        </button>
-                                    )}
+                                    <div className="flex items-end justify-between mt-3">
+                                        <div>
+                                            <div className="text-lg font-bold text-gray-900">£{price.toFixed(2)}</div>
+                                            {/* Smart Value Display */}
+                                            <div className="text-xs text-green-600 font-medium">
+                                                {product.nutrition?.protein ? `${product.nutrition.protein}g Protein` : 'High Value'}
+                                            </div>
+                                        </div>
+
+                                        {/* Smart Swap Trigger */}
+                                        {(product.scores?.health_score < 75) && (
+                                            <button
+                                                onClick={() => activeSwap(product)}
+                                                className="text-xs font-bold text-white bg-green-600 px-3 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                                            >
+                                                Find Better ➜
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </main>
 

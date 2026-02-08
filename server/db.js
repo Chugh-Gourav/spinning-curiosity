@@ -58,10 +58,22 @@ function initDb() {
 
     db.exec(schema);
 
-    // Seed Demo User
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get('demo');
-    if (!user) {
-        db.prepare('INSERT INTO users (username, password, preferences) VALUES (?, ?, ?)').run('demo', 'demo123', JSON.stringify({ diet: 'Vegan', health: 'Diabetic' }));
+    // Seed Demo Users with different preferences
+    const demoUsers = [
+        { username: 'gourav', password: 'demo123', preferences: { diet: 'Vegan', health: 'Diabetic' } },
+        { username: 'sarah', password: 'demo123', preferences: { diet: 'Keto', health: 'Weight Loss' } },
+        { username: 'mike', password: 'demo123', preferences: { diet: 'Vegetarian', health: 'High Protein' } }
+    ];
+
+    for (const user of demoUsers) {
+        const exists = db.prepare('SELECT * FROM users WHERE username = ?').get(user.username);
+        if (!exists) {
+            db.prepare('INSERT INTO users (username, password, preferences) VALUES (?, ?, ?)').run(
+                user.username,
+                user.password,
+                JSON.stringify(user.preferences)
+            );
+        }
     }
 
     console.log('Database initialized successfully');

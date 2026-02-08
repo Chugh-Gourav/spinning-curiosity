@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOTTAM - Image & Nutrition Verification</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; background: #f5f5f7; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .img-container { height: 200px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; background: #fff; }
+        img { max-height: 100%; max-width: 100%; object-fit: contain; }
+        .brand { color: #666; font-size: 0.9em; font-weight: 600; text-transform: uppercase; }
+        .name { margin: 5px 0; font-size: 1.1em; font-weight: 700; height: 3em; overflow: hidden; }
+        .meta { font-size: 0.85em; color: #888; margin-top: 10px; display: flex; justify-content: space-between; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; font-weight: bold; }
+        .badge-off { background: #e0f7fa; color: #006064; } /* OpenFoodFacts */
+        .badge-place { background: #ffebee; color: #b71c1c; } /* Placeholder */
+    </style>
+</head>
+<body>
+    <h1>VOTTAM Data Verification</h1>
+    <div id="grid" class="grid"></div>
+
+    <script>
+        // Data injected from database state
+        const products = [
+            { id: 1, brand: "Pip & Nut", name: "Crunchy Peanut Butter", img: "https://images.openfoodfacts.org/images/products/506/036/718/1311/front_en.35.400.jpg", source: "OFF" },
+            { id: 2, brand: "Whole Earth", name: "Organic Smooth Peanut Butter", img: "https://images.openfoodfacts.org/images/products/501/366/510/8344/front_en.48.400.jpg", source: "OFF" },
+            { id: 3, brand: "Meridian", name: "Crunchy Almond Butter", img: "https://images.openfoodfacts.org/images/products/506/013/228/1857/front_en.30.400.jpg", source: "OFF" },
+            { id: 4, brand: "Sun-Pat", name: "Smooth Peanut Butter", img: "https://images.openfoodfacts.org/images/products/506/039/162/6864/front_en.52.400.jpg", source: "OFF" },
+            { id: 5, brand: "Manilife", name: "Deep Roast Crunchy Peanut Butter", img: "https://images.openfoodfacts.org/images/products/506/056/028/0040/front_es.3.400.jpg", source: "OFF" },
+            { id: 6, brand: "Biona", name: "Organic Cashew Butter", img: "https://images.openfoodfacts.org/images/products/503/272/230/5892/front_fr.13.400.jpg", source: "OFF" },
+            { id: 7, brand: "Bulk", name: "Natural Peanut Butter 1kg", img: "https://images.unsplash.com/photo-1600189261867-30e5ffe7b8da?w=400", source: "Placeholder" },
+            { id: 8, brand: "Skippy", name: "Super Chunk Peanut Butter", img: "https://images.openfoodfacts.org/images/products/003/760/022/3348/front_en.59.400.jpg", source: "OFF" },
+            { id: 9, brand: "Myprotein", name: "All-Natural Peanut Butter", img: "https://images.openfoodfacts.org/images/products/505/553/464/0180/front_fr.3.400.jpg", source: "OFF" },
+            { id: 10, brand: "Nutty Bruce", name: "Activated Almond Butter", img: "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=400", source: "Placeholder" },
+            { id: 11, brand: "Tesco", name: "Smooth Peanut Butter", img: "https://images.openfoodfacts.org/images/products/500/011/900/3867/front_en.21.400.jpg", source: "OFF" },
+            { id: 12, brand: "Sainsbury's", name: "Crunchy Peanut Butter", img: "https://images.openfoodfacts.org/images/products/000/000/046/1481/front_en.3.400.jpg", source: "OFF" },
+            { id: 13, brand: "Aldi Bramwells", name: "Crunchy Peanut Butter", img: "https://images.openfoodfacts.org/images/products/000/002/615/2493/front_en.13.400.jpg", source: "OFF" },
+            { id: 14, brand: "Carley's", name: "Organic Raw Almond Butter", img: "https://images.unsplash.com/photo-1623428187969-5da2dcea5ebf?w=400", source: "Placeholder" },
+            { id: 15, brand: "Yumello", name: "Smooth Hazelnut Butter", img: "https://images.unsplash.com/photo-1612830384187-94ec0b18b3cb?w=400", source: "Placeholder" },
+            { id: 16, brand: "Oatly", name: "Barista Edition Oat Milk", img: "https://images.openfoodfacts.org/images/products/739/437/662/0157/front_en.5.400.jpg", source: "OFF" },
+            { id: 17, brand: "Alpro", name: "Unsweetened Almond Milk", img: "https://images.openfoodfacts.org/images/products/841/029/716/1889/front_es.38.400.jpg", source: "OFF" },
+            { id: 18, brand: "Minor Figures", name: "Organic Oat Milk", img: "https://images.openfoodfacts.org/images/products/506/040/608/0452/front_en.57.400.jpg", source: "OFF" },
+            { id: 19, brand: "Alpro", name: "Soya Original", img: "https://images.openfoodfacts.org/images/products/541/118/808/3191/front_en.22.400.jpg", source: "OFF" },
+            { id: 20, brand: "Rude Health", name: "Organic Coconut Milk", img: "https://images.openfoodfacts.org/images/products/506/012/028/2347/front_en.58.400.jpg", source: "OFF" }
+        ];
+
+        const grid = document.getElementById('grid');
+        products.forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            const sourceClass = p.source === 'OFF' ? 'badge-off' : 'badge-place';
+            card.innerHTML = `
+                <div class="img-container">
+                    <img src="${p.img}" alt="${p.name}" onerror="this.src='https://placehold.co/200?text=No+Image'">
+                </div>
+                <div class="brand">${p.brand}</div>
+                <div class="name">${p.name}</div>
+                <div class="meta">
+                    <span>#${p.id}</span>
+                    <span class="badge ${sourceClass}">${p.source === 'OFF' ? 'Real Image' : 'Placeholder'}</span>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    </script>
+</body>
+</html>

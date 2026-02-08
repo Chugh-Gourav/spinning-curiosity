@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Scanner } from './pages/Scanner';
-import { ChatInterface } from './components/ChatInterface';
+import { ProductSearch } from './components/ProductSearch';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -14,7 +14,7 @@ function App() {
         <Route path="/scan" element={user ? <Scanner /> : <Navigate to="/login" />} />
         <Route
           path="/home"
-          element={user ? <ChatInterface user={user} /> : <Navigate to="/login" />}
+          element={user ? <ProductSearch /> : <Navigate to="/login" />}
         />
         <Route path="/" element={<Navigate to={user ? "/home" : "/login"} />} />
       </Routes>

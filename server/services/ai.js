@@ -65,6 +65,32 @@ class AIService {
             analysis: 'This is a mock AI analysis based on simple heuristics.'
         };
     }
+
+    async generateSearchInsight(query, products) {
+        if (!products.length) return "I couldn't find any products matching that description.";
+
+        if (this.genAI) {
+            const prompt = `
+                User searched for: "${query}"
+                Found products: ${JSON.stringify(products.slice(0, 3).map(p => ({ name: p.food_name, score: p.scores.health_score })))}
+                
+                Write a 1-sentence helpful shopping insight for the user. Mention the best option.
+            `;
+            try {
+                const result = await this.genAI.models.generateContent({
+                    model: "gemini-1.5-flash",
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }]
+                });
+                return result.response.text();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // Mock fallback
+        const best = products.reduce((prev, current) => (prev.scores.health_score > current.scores.health_score) ? prev : current);
+        return `I found ${products.length} options. The best choice is ${best.food_name} with a health score of ${best.scores.health_score}.`;
+    }
 }
 
 module.exports = new AIService();

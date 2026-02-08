@@ -45,6 +45,11 @@ export function Scanner() {
                         screenshotFormat="image/jpeg"
                         className="w-full h-full object-cover"
                         videoConstraints={{ facingMode: "environment" }}
+                        onUserMedia={() => console.log("Webcam started")}
+                        onUserMediaError={(err) => {
+                            console.error("Webcam error:", err);
+                            alert("Camera access denied or not available. Please allow camera permissions.");
+                        }}
                     />
                 )}
 

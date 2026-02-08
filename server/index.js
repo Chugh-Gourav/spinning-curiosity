@@ -120,8 +120,7 @@ app.get('/api/products', async (req, res) => {
         // Optionally also search FatSecret API (Only if explicitly requested or no local results & query exists)
         let apiResults = [];
         if ((source === 'api' || (source === 'both' && localResults.length === 0)) && query) {
-            // apiResults = await fatSecretService.searchProducts(query); // Commented out to focus on local data for prototype
-            // apiResults = apiResults.map(p => ({ ...p, source: 'api' }));
+            // API integration placeholder
         }
 
         res.json([...localResults, ...apiResults]);
@@ -260,8 +259,7 @@ app.post('/api/chat', async (req, res) => {
 
         // If no local results, try FatSecret API
         if (products.length === 0) {
-            // const apiProducts = await fatSecretService.searchProducts(query);
-            // products = apiProducts.slice(0, 4).map(p => ({ ...p, source: 'api' }));
+            // API fallback placeholder
         }
 
         const message = await aiService.generateSearchInsight(query, products);

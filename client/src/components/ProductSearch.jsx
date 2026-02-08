@@ -29,21 +29,43 @@ export const ProductSearch = () => {
     const [maxPrice, setMaxPrice] = useState(10); // Default max price
     const [hasSearched, setHasSearched] = useState(false);
     const [swapSuggestion, setSwapSuggestion] = useState(null);
+    const [isAiMode, setIsAiMode] = useState(false);
+    const [aiMessage, setAiMessage] = useState('');
 
     const filters = ['All', 'Spreads', 'Milk Alternatives', 'Vegan'];
 
     const searchProducts = async (term, category) => {
         setLoading(true);
         setHasSearched(true);
+        setAiMessage('');
         try {
-            let url = `http://localhost:3000/api/products?source=local`;
-            if (term) url += `&q=${encodeURIComponent(term)}`;
-            if (category && category !== 'All') url += `&category=${encodeURIComponent(category)}`;
-            url += `&maxPrice=${maxPrice}`;
+            let url = isAiMode
+                ? `http://localhost:3000/api/chat`
+                : `http://localhost:3000/api/products?source=local`;
 
-            const res = await fetch(url);
+            let options = {};
+
+            if (isAiMode) {
+                options = {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: term || 'healthy products' })
+                };
+            } else {
+                if (term) url += `&q=${encodeURIComponent(term)}`;
+                if (category && category !== 'All') url += `&category=${encodeURIComponent(category)}`;
+                url += `&maxPrice=${maxPrice}`;
+            }
+
+            const res = await fetch(url, options);
             const data = await res.json();
-            setProducts(data);
+
+            if (isAiMode) {
+                setProducts(data.products || []);
+                setAiMessage(data.message || '');
+            } else {
+                setProducts(data);
+            }
         } catch (err) {
             console.error(err);
         } finally {
@@ -211,7 +233,7 @@ export const ProductSearch = () => {
 
                                 <div className="flex items-end justify-between mt-3">
                                     <div>
-                                        <div className="text-lg font-bold text-gray-900">£{((product.food_description && product.food_description.split('|')[1]) || '0.00').trim()}</div>
+                                        <div className="text-lg font-bold text-gray-900">{((product.food_description && product.food_description.split('|')[1]) || '0.00').trim()}</div>
                                         {/* Smart Value Display */}
                                         <div className="text-xs text-green-600 font-medium">
                                             {product.nutrition?.protein ? `${product.nutrition.protein}g Protein` : 'High Value'}

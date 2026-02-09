@@ -120,6 +120,7 @@ app.get('/api/products', async (req, res) => {
                 product_image: p.image_url,
                 food_description: `${p.weight_grams}g | £${(p.price_local_currency || 0).toFixed(2)} | ${p.dietary_type}`,
                 category: p.category,
+                price_local_currency: p.price_local_currency || 0,
                 nutrition: {
                     sugar: p.sugar_per_100g,
                     salt: p.salt_per_100g,

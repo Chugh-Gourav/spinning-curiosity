@@ -1,6 +1,21 @@
+/**
+ * ProductSearch Component
+ * 
+ * The main interface for the VOTTAM shopping agent.
+ * Features:
+ * - Search bar with AI toggle (Personalized AI vs Standard Search)
+ * - User selection dropdown for personalization context
+ * - Category filters and price range slider
+ * - Product list display with health scores
+ * - "Find Better" smart swap functionality
+ */
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Yuka-inspired Health Badge
+// Visual indicator of product health score (0-100)
+// Red: Poor (<50), Orange: Good (50-74), Green: Excellent (75+)
 const HealthBadge = ({ score }) => {
     let color = 'bg-red-500';
     let label = 'Poor';
@@ -42,10 +57,18 @@ export const ProductSearch = () => {
         fetch('https://vottam-api-595396735241.us-central1.run.app/api/users')
             .then(res => res.json())
             .then(data => {
-                setUsers(data);
-                if (data.length > 0) setSelectedUser(data[0]);
+                if (Array.isArray(data)) {
+                    setUsers(data);
+                    if (data.length > 0) setSelectedUser(data[0]);
+                } else {
+                    console.error('VOTTAM: Invalid users data:', data);
+                    setUsers([]);
+                }
             })
-            .catch(console.error);
+            .catch(err => {
+                console.error('VOTTAM: User fetch error:', err);
+                setUsers([]); // Fallback to empty
+            });
     }, []);
 
     const searchProducts = async (term, category) => {

@@ -26,6 +26,9 @@ function App() {
 
         {/* Default redirect to home */}
         <Route path="/" element={<Navigate to="/home" />} />
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </Router>
   );

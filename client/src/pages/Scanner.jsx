@@ -1,3 +1,11 @@
+/**
+ * Scanner Component
+ * 
+ * Provides a camera interface for scanning product barcodes.
+ * - Uses 'react-webcam' to access the device camera.
+ * - Simulates scanning logic (capture -> process -> redirect).
+ * - Updates the app state with the scanned product query.
+ */
 import React, { useRef, useState, useCallback } from 'react';
 import Webcam from 'react-webcam';
 import { Camera, X, CheckCircle } from 'lucide-react';

@@ -1,88 +1,286 @@
 # VOTTAM 🥗
 
-**VOTTAM** is an intelligent product discovery platform designed to help users find healthier, sustainable, and value-driven food alternatives. Inspired by apps like Yuka, it combines nutritional scoring with price-performance metrics ("Smart Value") and Generation AI insights to guide better purchasing decisions.
+**VOTTAM** (Value-Optimized Transparent Trading AI Manager) is an intelligent product discovery platform designed to help users find healthier, sustainable, and value-driven food alternatives. Inspired by apps like Yuka, it combines nutritional scoring with price-performance metrics ("Smart Value") and Generative AI insights.
+
+## 🌐 Live Demo
+
+| Component | URL |
+|-----------|-----|
+| **Frontend** | [https://Chugh-Gourav.github.io/spinning-curiosity/](https://Chugh-Gourav.github.io/spinning-curiosity/) |
+| **Backend API** | [https://vottam-api-595396735241.us-central1.run.app](https://vottam-api-595396735241.us-central1.run.app/health) |
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              USER'S BROWSER                                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    React SPA (Single Page App)                       │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐   │    │
+│  │  │ ProductSearch│  │   Scanner    │  │    HashRouter (#/home)  │   │    │
+│  │  │  Component   │  │  Component   │  │    (#/scan)             │   │    │
+│  │  └──────┬───────┘  └──────┬───────┘  └─────────────────────────┘   │    │
+│  └─────────┼─────────────────┼──────────────────────────────────────────┘    │
+│            │                 │                                               │
+│            └────────┬────────┘                                               │
+│                     │ API Calls (fetch)                                      │
+└─────────────────────┼───────────────────────────────────────────────────────┘
+                      │ HTTPS
+                      ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    GOOGLE CLOUD RUN (Containerized)                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                   Node.js + Express Server                           │    │
+│  │  ┌──────────────────────────────────────────────────────────────┐   │    │
+│  │  │                      REST API Layer                           │   │    │
+│  │  │  /api/products  /api/users  /api/chat  /api/scan-history     │   │    │
+│  │  └────────────────────────────┬─────────────────────────────────┘   │    │
+│  │                               │                                      │    │
+│  │  ┌────────────────────────────▼─────────────────────────────────┐   │    │
+│  │  │                    SQLite Database (vottam.db)               │   │    │
+│  │  │  ┌──────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────┐ │   │    │
+│  │  │  │ products │ │nutrition_fact│ │product_scores│ │  users  │ │   │    │
+│  │  │  │  (39)    │ │     (39)     │ │    (39)      │ │   (4)   │ │   │    │
+│  │  │  └──────────┘ └──────────────┘ └──────────────┘ └─────────┘ │   │    │
+│  │  └──────────────────────────────────────────────────────────────┘   │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+1. **User opens app** → Browser loads React SPA from GitHub Pages
+2. **App loads** → Frontend calls `/api/users` to get user list
+3. **User searches** → Frontend calls `/api/products?q=oatly&category=...`
+4. **AI Search** → Frontend calls `/api/chat/personalized` with user context
+5. **Smart Swap** → Frontend calls `/api/products/:id/swap` for alternatives
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+-- Products table (39 items)
+CREATE TABLE products (
+    id INTEGER PRIMARY KEY,
+    brand TEXT NOT NULL,           -- e.g., "Oatly", "Alpro"
+    name TEXT NOT NULL,            -- e.g., "Organic Oat Drink"
+    image_url TEXT,                -- OpenFoodFacts image URL
+    category TEXT,                 -- "Nut Butter", "Plant-Based Milk", "Protein Powder"
+    dietary_type TEXT,             -- "Vegan", "Vegetarian"
+    weight_grams REAL,             -- e.g., 1000
+    price_local_currency REAL      -- e.g., 2.50
+);
+
+-- Nutrition facts (Yuka-style scoring)
+CREATE TABLE nutrition_facts (
+    product_id INTEGER,
+    sugar_per_100g REAL,           -- Lower is better
+    salt_per_100g REAL,            -- Lower is better
+    protein_per_100g REAL,         -- Higher is better
+    fiber_per_100g REAL,           -- Higher is better
+    has_additives BOOLEAN          -- False is better
+);
+
+-- Calculated health scores
+CREATE TABLE product_scores (
+    product_id INTEGER,
+    health_score INTEGER,          -- 0-100 (Yuka-style)
+    smartest_value_score REAL      -- Price-performance ratio
+);
+
+-- Users with dietary preferences
+CREATE TABLE users (
+    id INTEGER PRIMARY KEY,
+    username TEXT UNIQUE,
+    preferences TEXT               -- JSON: {"diet": "Vegan", "health": "Diabetic"}
+);
+
+-- Scan history for personalization
+CREATE TABLE scan_history (
+    user_id INTEGER,
+    product_id INTEGER,
+    action TEXT,                   -- "viewed", "scanned", "swapped"
+    scanned_at DATETIME
+);
+```
+
+---
+
+## 🔌 API Reference
+
+### Base URL
+```
+https://vottam-api-595396735241.us-central1.run.app
+```
+
+### Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/api/products?q=&category=&maxPrice=` | Search products |
+| `GET` | `/api/products/:id/swap` | Get healthier alternative |
+| `GET` | `/api/categories` | List all categories |
+| `GET` | `/api/users` | Get all demo users |
+| `POST` | `/api/login` | Authenticate user |
+| `POST` | `/api/chat` | AI-powered search |
+| `POST` | `/api/chat/personalized` | Personalized AI search |
+| `POST` | `/api/scan-history` | Log user scans |
+| `GET` | `/api/user/:id/history` | Get scan history |
+| `GET` | `/api/user/:id/recommendations` | AI recommendations |
+
+### Example API Calls
+
+```bash
+# Get all products
+curl "https://vottam-api-595396735241.us-central1.run.app/api/products?source=local"
+
+# Search for Oatly products
+curl "https://vottam-api-595396735241.us-central1.run.app/api/products?q=oatly&source=local"
+
+# Get categories
+curl "https://vottam-api-595396735241.us-central1.run.app/api/categories"
+
+# Get all users
+curl "https://vottam-api-595396735241.us-central1.run.app/api/users"
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 19 + Vite | Fast SPA with modern React |
+| **Styling** | Tailwind CSS | Utility-first CSS framework |
+| **Routing** | React Router (HashRouter) | Client-side routing for GitHub Pages |
+| **Backend** | Node.js + Express | REST API server |
+| **Database** | SQLite (better-sqlite3) | Lightweight, serverless database |
+| **AI** | Google Gemini API | Personalized search insights |
+| **Frontend Hosting** | GitHub Pages | Free static hosting |
+| **Backend Hosting** | Google Cloud Run | Serverless container hosting |
+
+---
 
 ## 🚀 Features
 
-- **Nutritional Scoring**: Instant traffic-light health scores (Green/Excellent to Red/Poor).
-- **Smart Swaps**: Automatically suggests healthier alternatives when viewing lower-rated products.
-- **Price Transparency**: Includes price-per-unit and "Protein per £" metrics to highlight true value.
-- **Gen AI Search ✨**: Toggle-able AI assistant that provides contextual insights ("Why is this better?") rather than just a list of links.
-- **Barcode Scanner 📷**: Integrated camera support to scan product barcodes for instant analysis.
-- **Dietary Filters**: One-tap filtering for Vegan, Gluten-Free, and other dietary needs.
+### Core Features
+- **Nutritional Scoring**: Traffic-light health scores (Green/Excellent to Red/Poor)
+- **Smart Swaps**: Automatic healthier alternative suggestions
+- **Price Transparency**: "Protein per £" smart value metrics
+- **Gen AI Search ✨**: Toggle AI for contextual insights
+- **Barcode Scanner 📷**: Camera-based product scanning
 
-## 🛠 Tech Stack
+### AI Personalization (Phase 3)
+- **User Preferences**: Diet type + health goals stored per user
+- **Scan History**: Track what users view/scan
+- **Personalized Recommendations**: AI uses history + preferences
 
-- **Frontend**: React (Vite), Tailwind CSS
-- **Backend**: Node.js, Express
-- **Database**: SQLite (lightweight, zero-config)
-- **AI Integration**: Custom implementation ready for LLM integration (Google Gemini/OpenAI).
-- **Deployment**: GitHub Pages (Frontend) + Node Server (Backend)
+---
 
-## 📦 Installation
+## 📦 Data Summary
+
+| Category | Count | Examples |
+|----------|-------|----------|
+| Nut Butter | 15 | Pip & Nut, Whole Earth, Meridian |
+| Plant-Based Milk | 12 | Oatly, Alpro, Plenish |
+| Protein Powder | 12 | Vega, Myprotein, Bulk |
+| **Total Products** | **39** | |
+| **Demo Users** | **4** | gourav, sarah, mike, demo |
+
+---
+
+## 📂 Project Structure
+
+```
+VOTTAM/
+├── client/                    # React Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── ProductSearch.jsx   # Main search UI
+│   │   ├── pages/
+│   │   │   └── Scanner.jsx         # Barcode scanner
+│   │   ├── App.jsx                 # Router configuration
+│   │   └── main.jsx                # Entry point
+│   ├── dist/                       # Built files (deployed to gh-pages)
+│   └── package.json
+│
+├── server/                    # Node.js Backend
+│   ├── db.js                      # Database setup + schema
+│   ├── index.js                   # Express routes
+│   ├── vottam.db                  # SQLite database file
+│   └── services/
+│       ├── ai.js                  # Gemini AI integration
+│       └── fatsecret.js           # External API (optional)
+│
+└── README.md
+```
+
+---
+
+## 🏃‍♂️ Local Development
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js v18+
 - npm
 
 ### Setup
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/Chugh-Gourav/spinning-curiosity.git vottam
-    cd vottam
-    ```
-
-2.  **Install Dependencies**
-    ```bash
-    # Install server dependencies
-    cd server
-    npm install
-
-    # Install client dependencies
-    cd ../client
-    npm install
-    ```
-
-3.  **Database Setup**
-    The SQLite database is pre-configured. To seed it with initial data:
-    ```bash
-    cd server
-    node seed.js
-    ```
-
-## 🏃‍♂️ Running the App
-
-### 1. Start the Backend Server
 ```bash
+# Clone the repo
+git clone https://github.com/Chugh-Gourav/spinning-curiosity.git
+cd spinning-curiosity
+
+# Install & run backend
 cd server
-npm start
-# Server runs on http://localhost:3000
-```
+npm install
+npm start  # Runs on http://localhost:3000
 
-### 2. Start the Frontend
-```bash
+# Install & run frontend (new terminal)
 cd client
-npm run dev
-# App runs on http://localhost:5173
+npm install
+npm run dev  # Runs on http://localhost:5173
 ```
 
-## 🌐 Deployment
+### Deployment
 
-The frontend is deployed to GitHub Pages via GitHub Actions.
+```bash
+# Deploy frontend to GitHub Pages
+cd client
+npm run deploy  # Builds + pushes to gh-pages branch
 
-- **Live Demo**: [https://Chugh-Gourav.github.io/VOTTAM/](https://Chugh-Gourav.github.io/VOTTAM/)
+# Backend is already on Cloud Run
+# Re-deploy via: gcloud run deploy (requires Dockerfile)
+```
 
-*Note: The demo requires the backend server to be running locally or deployed to a public cloud service to fetch live data.*
+---
 
-## 🤝 Contributing
+## 🎓 Interview Talking Points
 
-1.  Fork the repo
-2.  Create your feature branch (`git checkout -b feature/amazing-feature`)
-3.  Commit your changes (`git commit -m 'Add some amazing feature'`)
-4.  Push to the branch (`git push origin feature/amazing-feature`)
-5.  Open a Pull Request
+### System Design
+- **Why SQLite?** Zero-config, single file, perfect for prototypes. Trade-off: doesn't scale horizontally.
+- **Why HashRouter?** GitHub Pages doesn't support server-side routing. Hash fragments (#/home) work client-side.
+- **Why Cloud Run?** Serverless, auto-scales to zero, pay-per-request. No server management.
+
+### Key Technical Decisions
+1. **Separation of Concerns**: Frontend (presentation) vs Backend (data/logic)
+2. **API-First Design**: Frontend is backend-agnostic, can swap APIs
+3. **Health Score Algorithm**: 60% Nutrition + 30% Additives + 10% Organic bonus
+4. **Personalization Strategy**: Preferences + History → Context → AI Prompt
+
+### Scaling Considerations
+| Current | Production |
+|---------|------------|
+| SQLite | PostgreSQL / Cloud SQL |
+| In-container DB | External managed DB |
+| Single region | Multi-region Cloud Run |
+| No auth | Firebase Auth / OAuth |
+
+---
 
 ## 📄 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT License - See [LICENSE](LICENSE) for details.

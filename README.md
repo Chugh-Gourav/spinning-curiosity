@@ -42,37 +42,42 @@ Use the dropdown in the top-right to switch between these personas and see how t
 
 A modern, serverless, and AI-native stack designed for scale and agility.
 
-```mermaid
-graph TD
-    User[User Browser]
-    
-    subgraph Frontend [React SPA (GitHub Pages)]
-        UI[ProductSearch UI]
-        Scanner[Barcode Scanner]
-    end
-    
-    subgraph Cloud [Google Cloud Platform]
-        LB[Cloud Run Service]
-        
-        subgraph Backend [Node.js + Express]
-            API[REST API Layer]
-            Logic[Business Logic]
-        end
-        
-        DB[(SQLite Database)]
-    end
-    
-    subgraph External [External Services]
-        Gemini[Google Gemini 1.5 Pro]
-    end
-
-    User -->|HTTPS| Frontend
-    Frontend -->|JSON/Fetch| LB
-    LB --> API
-    API --> Logic
-    Logic --> DB
-    Logic -->|Personalized Prompts| Gemini
-    Gemini -->|AI Insights| Logic
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              USER'S BROWSER                                  │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    React SPA (Single Page App)                       │    │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐   │    │
+│  │  │ ProductSearch│  │   Scanner    │  │    HashRouter (#/home)  │   │    │
+│  │  │  Component   │  │  Component   │  │    (#/scan)             │   │    │
+│  │  └──────┬───────┘  └──────┬───────┘  └─────────────────────────┘   │    │
+│  └─────────┼─────────────────┼──────────────────────────────────────────┘    │
+│            │                 │                                               │
+│            └────────┬────────┘                                               │
+│                     │ API Calls (fetch)                                      │
+36: └─────────────────────┼───────────────────────────────────────────────────────┘
+37:                       │ HTTPS
+38:                       ▼
+39: ┌─────────────────────────────────────────────────────────────────────────────┐
+40: │                    GOOGLE CLOUD RUN (Containerized)                          │
+41: │  ┌─────────────────────────────────────────────────────────────────────┐    │
+42: │  │                   Node.js + Express Server                           │    │
+43: │  │  ┌──────────────────────────────────────────────────────────────┐   │    │
+44: │  │  │                      REST API Layer                           │   │    │
+45: │  │  │  /api/products  /api/users  /api/chat  /api/scan-history     │   │    │
+46: │  │  └────────┬───────────────────┬─────────────────────────────────┘   │    │
+47: │  │           │                   │                                      │    │
+48: │  │  ┌────────▼───────────────────▼─────────┐   ┌─────────────────────┐  │    │
+49: │  │  │      SQLite Database (vottam.db)     │   │  StartUp AI Service │  │    │
+50: │  │  │                                      │   │    (Gemini 1.5)     │  │    │
+51: │  │  │ Products | Users | History | Scores  │◄──┤                     │  │    │
+52: │  │  └──────────────────────────────────────┘   └──────────▲──────────┘  │    │
+53: │  └───────────┬────────────────────────────────────────────┼─────────────┘    │
+54: │              │                                            │                  │
+55: └──────────────┼────────────────────────────────────────────┼──────────────────┘
+56:                │                                            │
+57:                ▼                                            ▼
+58:       [File System]                              [Google Gemini API]
 ```
 
 ### 🛠️ Tech Stack Strategy

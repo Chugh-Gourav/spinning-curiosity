@@ -102,9 +102,9 @@ A modern, serverless, and AI-native stack designed for scale and agility.
 - [x] **Smart Swaps**: Algorithmic recommendation of better products.
 
 ### Phase 3: Future Horizon (Planned) 🔮
-- [ ] **OCR Scanning**: Extract nutrition facts from photos of unknown products.
-- [ ] **Community Validation**: User upvotes on "tasty" healthy swaps.
-- [ ] **Grocery Integration**: "Add to Basket" for Tesco/Sainsbury's APIs.
+- [ ] **OCR & Barcode Scanning**: Extract nutrition facts from photos or barcodes of unknown products.
+- [ ] **Community Trust**: User upvotes and summarized comments on "tasty" healthy swaps.
+- [ ] **Retail Partnerships**: "Add to Basket" integration for Tesco/Sainsbury's (B2B Opportunity).
 
 ---
 
@@ -114,7 +114,7 @@ A modern, serverless, and AI-native stack designed for scale and agility.
 |--------|----------------|
 | **Products** | 39 (Curated high-quality dataset) |
 | **Categories** | Nut Butter, Plant-Based Milk, Protein Powder |
-| **Users** | 4 Demo Profiles |
+| **Users** | 6 Demo Profiles |
 | **Latency** | <500ms (P95) |
 
 ---

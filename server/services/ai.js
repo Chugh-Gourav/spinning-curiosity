@@ -111,9 +111,9 @@ class AIService {
                 
                 MATCHING PRODUCTS:
                 ${JSON.stringify(products.slice(0, 5).map(p => ({
-                name: p.name,
-                brand: p.brand,
-                health_score: p.health_score,
+                name: p.food_name,
+                brand: p.brand_name,
+                health_score: p.scores.health_score,
                 price: p.price_local_currency
             })), null, 2)}
                 
@@ -138,14 +138,14 @@ class AIService {
 
         // Mock personalized fallback
         const best = products.reduce((prev, current) =>
-            (prev.health_score > current.health_score) ? prev : current
+            (prev.scores.health_score > current.scores.health_score) ? prev : current
         );
 
         let response = `Based on your ${context.userDiet} diet`;
         if (context.healthGoals !== 'general wellness') {
             response += ` and ${context.healthGoals} goals`;
         }
-        response += `, I recommend ${best.brand} ${best.name} with a health score of ${best.health_score}.`;
+        response += `, I recommend ${best.food_name} with a health score of ${best.scores.health_score}.`;
 
         if (context.recentlyViewed !== 'nothing yet') {
             response += ` Since you've been checking out similar products, this should be a great fit!`;

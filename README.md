@@ -9,6 +9,13 @@
 | **Frontend** | [https://Chugh-Gourav.github.io/spinning-curiosity/](https://Chugh-Gourav.github.io/spinning-curiosity/) |
 | **Backend API** | [https://vottam-api-595396735241.us-central1.run.app](https://vottam-api-595396735241.us-central1.run.app/health) |
 
+### 👤 Test Users (for Personalization)
+Select these users from the dropdown to test different AI personas:
+- **Emma** (Keto/Weight Loss): See low-sugar nudges.
+- **David** (Heart Health): See low-salt warnings.
+- **Sophia** (Clean Eater): See additive-free preferences.
+- **Gourav** (General): Standard healthy eating.
+
 ---
 
 ## 🏗️ Architecture Overview

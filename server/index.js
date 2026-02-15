@@ -64,6 +64,7 @@ app.get('/api/products', async (req, res) => {
     const query = req.query.q;
     const category = req.query.category;
     const source = req.query.source || 'local'; // 'local', 'api', or 'both'
+    const limit = parseInt(req.query.limit) || 50;  // Allow custom limit
 
     try {
         let localResults = [];
@@ -85,8 +86,15 @@ app.get('/api/products', async (req, res) => {
             const params = [];
 
             if (query) {
-                sql += ` AND (LOWER(p.name) LIKE ? OR LOWER(p.brand) LIKE ?)`;
-                params.push(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`);
+                // SCALABLE SEARCH: Match across Name, Brand, Category, Dietary Type
+                sql += ` AND (
+                    LOWER(p.name) LIKE ? 
+                    OR LOWER(p.brand) LIKE ? 
+                    OR LOWER(p.category) LIKE ? 
+                    OR LOWER(p.dietary_type) LIKE ?
+                )`;
+                const term = `%${query.toLowerCase()}%`;
+                params.push(term, term, term, term);
             }
 
             if (category) {
@@ -108,7 +116,8 @@ app.get('/api/products', async (req, res) => {
             sql += ` AND p.price_local_currency BETWEEN ? AND ?`;
             params.push(minPrice, maxPrice);
 
-            sql += ` ORDER BY s.health_score DESC, s.smartest_value_score DESC LIMIT 50`;
+            sql += ` ORDER BY s.health_score DESC, s.smartest_value_score DESC LIMIT ?`;
+            params.push(limit);
 
             localResults = db.prepare(sql).all(...params);
 
@@ -136,6 +145,22 @@ app.get('/api/products', async (req, res) => {
             }));
         }
 
+        // Add "Best in Category" flag for UI
+        if (localResults.length > 0) {
+            // Group by category to find top scores
+            const categoryTops = {};
+            localResults.forEach(p => {
+                if (!categoryTops[p.category] || p.scores.health_score > categoryTops[p.category]) {
+                    categoryTops[p.category] = p.scores.health_score;
+                }
+            });
+
+            localResults = localResults.map(p => ({
+                ...p,
+                is_best_in_category: p.scores.health_score === categoryTops[p.category]
+            }));
+        }
+
         // Optionally also search FatSecret API (Only if explicitly requested or no local results & query exists)
         let apiResults = [];
         if ((source === 'api' || (source === 'both' && localResults.length === 0)) && query) {
@@ -149,32 +174,242 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-// Smart Swap Endpoint
-// Suggests a product in the same category with a higher health score
-app.get('/api/products/:id/swap', (req, res) => {
-    const { id } = req.params;
+// ============================================================================
+// NEW: Search Suggestions (Guided Discovery for "No Results")
+// ============================================================================
+app.get('/api/products/suggestions', (req, res) => {
     try {
+        const categories = db.prepare(`SELECT category, COUNT(*) as count FROM products GROUP BY category`).all();
+        const popularBrands = db.prepare(`SELECT brand, COUNT(*) as count FROM products GROUP BY brand ORDER BY count DESC LIMIT 5`).all();
+
+        res.json({
+            categories: categories.map(c => c.category),
+            brands: popularBrands.map(b => b.brand),
+            popularTerms: ['Vegan', 'High Protein', 'Gluten Free', 'Organic'] // Static for now
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Suggestions failed' });
+    }
+});
+
+// ============================================================================
+// NEW: Personalized Score Breakdown ("Reasons Why" + Nudges)
+// ============================================================================
+app.get('/api/products/:id/score-breakdown', (req, res) => {
+    const { id } = req.params;
+    const userId = req.query.userId; // Get user context for personalization
+
+    try {
+        // 1. Fetch Product Data
         const product = db.prepare(`
-            SELECT p.category, s.health_score 
+            SELECT p.*, n.*, s.health_score 
             FROM products p
+            JOIN nutrition_facts n ON p.id = n.product_id
             JOIN product_scores s ON p.id = s.product_id
             WHERE p.id = ?
         `).get(id);
 
         if (!product) return res.status(404).json({ error: 'Product not found' });
 
-        const betterProduct = db.prepare(`
-            SELECT 
-                p.id, p.brand, p.name, p.image_url, s.health_score
+        // 2. Fetch User Context (if logged in)
+        let userContext = { diet: 'Standard', health: 'General Wellness' };
+        if (userId) {
+            const user = db.prepare('SELECT preferences FROM users WHERE id = ?').get(userId);
+            if (user) userContext = JSON.parse(user.preferences || '{}');
+        }
+
+        // 3. Generate Nudges based on Rules + User Context
+        const breakdown = [];
+
+        // --- Helper to add metric ---
+        const addMetric = (key, val, unit, icon, rules) => {
+            let rating = 'good';
+            let nudge = 'Standard levels';
+
+            // Eval rules
+            for (const rule of rules) {
+                if (rule.condition(val)) {
+                    rating = rule.rating;
+                    nudge = typeof rule.nudge === 'function' ? rule.nudge(userContext) : rule.nudge;
+                    break;
+                }
+            }
+            breakdown.push({ metric: key, value: val, unit, icon, rating, nudge });
+        };
+
+        // --- Rules Definition ---
+
+        // PROTEIN
+        addMetric('protein', product.protein_per_100g, 'g', '💪', [
+            {
+                condition: v => v > 15, rating: 'excellent',
+                nudge: ctx => ctx.health === 'High Protein' || ctx.health === 'Weight Loss'
+                    ? "✨ Excellent Source — Perfect for your muscle & satiety goals!"
+                    : "High Protein — Keeps you fuller for longer and supports muscle repair."
+            },
+            {
+                condition: v => v > 5, rating: 'good',
+                nudge: "Good Source — decent protein contribution."
+            },
+            {
+                condition: () => true, rating: 'poor',
+                nudge: "Low Protein — Consider pairing with protein-rich foods."
+            }
+        ]);
+
+        // SUGAR
+        addMetric('sugar', product.sugar_per_100g, 'g', '🍬', [
+            {
+                condition: v => v <= 5, rating: 'excellent',
+                nudge: ctx => ctx.health === 'Diabetic' || ctx.health === 'Weight Loss'
+                    ? "✨ Low Sugar — Excellent choice for blood sugar management."
+                    : "Low Sugar — Helps maintain steady energy levels."
+            },
+            {
+                condition: v => v <= 15, rating: 'good',
+                nudge: "Moderate Sugar — Enjoy in moderation."
+            },
+            {
+                condition: () => true, rating: 'poor',
+                nudge: ctx => ctx.health === 'Diabetic'
+                    ? "⚠️ High Sugar — May spike blood sugar. Proceed with caution."
+                    : "High Sugar — May cause energy crashes."
+            }
+        ]);
+
+        // FIBER
+        addMetric('fiber', product.fiber_per_100g, 'g', '🌾', [
+            {
+                condition: v => v > 6, rating: 'excellent',
+                nudge: "High Fiber — Excellent for digestion and gut health."
+            },
+            {
+                condition: v => v > 3, rating: 'good',
+                nudge: "Good Fiber — Helps you feel satisfied."
+            },
+            {
+                condition: () => true, rating: 'poor',
+                nudge: "Low Fiber — Less filling."
+            }
+        ]);
+
+        // SALT
+        addMetric('salt', product.salt_per_100g, 'g', '🧂', [
+            { condition: v => v < 0.3, rating: 'excellent', nudge: "Low Salt — Great for heart health." },
+            { condition: v => v < 1.5, rating: 'good', nudge: "Moderate Salt." },
+            { condition: () => true, rating: 'poor', nudge: "High Salt — Watch your daily intake." }
+        ]);
+
+        // ADDITIVES
+        breakdown.push({
+            metric: 'additives',
+            value: product.has_additives ? 'Yes' : 'No',
+            icon: '🧪',
+            rating: product.has_additives ? 'poor' : 'excellent',
+            nudge: product.has_additives
+                ? "Contains Additives — Processed ingredients present."
+                : "Clean Label — No artificial additives found."
+        });
+
+        // 4. Calculate Category Rank
+        const rankData = db.prepare(`
+            SELECT COUNT(*) + 1 as rank, (SELECT COUNT(*) FROM products WHERE category = ?) as total
+            FROM products p 
+            JOIN product_scores s ON p.id = s.product_id
+            WHERE p.category = ? AND s.health_score > ?
+        `).get(product.category, product.category, product.health_score);
+
+        res.json({
+            health_score: product.health_score,
+            user_context: userContext,
+            breakdown,
+            category_rank: {
+                rank: rankData.rank,
+                total: rankData.total,
+                category: product.category
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Score breakdown failed' });
+    }
+});
+
+// Smart Swap Endpoint (Enhanced with Comparison Logic)
+app.get('/api/products/:id/swap', (req, res) => {
+    const { id } = req.params;
+    try {
+        const original = db.prepare(`
+            SELECT p.*, s.health_score, n.*
             FROM products p
             JOIN product_scores s ON p.id = s.product_id
+            JOIN nutrition_facts n ON p.id = n.product_id
+            WHERE p.id = ?
+        `).get(id);
+
+        if (!original) return res.status(404).json({ error: 'Product not found' });
+
+        // 1. Try to find better option from SAME BRAND first (Brand Loyalty)
+        let betterProduct = db.prepare(`
+            SELECT p.*, s.health_score, n.*
+            FROM products p
+            JOIN product_scores s ON p.id = s.product_id
+            JOIN nutrition_facts n ON p.id = n.product_id
             WHERE p.category = ? 
+            AND p.brand = ? 
             AND s.health_score > ?
             ORDER BY s.health_score DESC
             LIMIT 1
-        `).get(product.category, product.health_score);
+        `).get(original.category, original.brand, original.health_score);
 
-        res.json(betterProduct || null); // Return null if no better option
+        let swapReason = "Same brand, healthier recipe.";
+
+        // 2. If no same-brand option, find BEST in category (Cross-Brand)
+        if (!betterProduct) {
+            betterProduct = db.prepare(`
+                SELECT p.*, s.health_score, n.*
+                FROM products p
+                JOIN product_scores s ON p.id = s.product_id
+                JOIN nutrition_facts n ON p.id = n.product_id
+                WHERE p.category = ? 
+                AND s.health_score > ? + 10  -- Must be significantly better (+10 pts) to switch brands
+                ORDER BY s.health_score DESC
+                LIMIT 1
+            `).get(original.category, original.health_score);
+
+            swapReason = `Significantly healthier (+${betterProduct ? betterProduct.health_score - original.health_score : 0} pts) option.`;
+        }
+
+        if (!betterProduct) return res.json(null); // No better option found
+
+        // 3. Construct Comparison Reasons (Why is it better?)
+        const reasons = [];
+        if (betterProduct.sugar_per_100g < original.sugar_per_100g) reasons.push(`Less Sugar (${betterProduct.sugar_per_100g}g vs ${original.sugar_per_100g}g)`);
+        if (betterProduct.protein_per_100g > original.protein_per_100g) reasons.push(`More Protein (${betterProduct.protein_per_100g}g vs ${original.protein_per_100g}g)`);
+        if (!betterProduct.has_additives && original.has_additives) reasons.push("No Additives (Clean Label)");
+        if (betterProduct.price_local_currency < original.price_local_currency) reasons.push("Cheaper Price");
+
+        res.json({
+            original: {
+                id: original.id,
+                name: original.name,
+                brand: original.brand,
+                image: original.image_url,
+                score: original.health_score
+            },
+            better: {
+                id: betterProduct.id,
+                name: betterProduct.name,
+                brand: betterProduct.brand,
+                image: betterProduct.image_url,
+                score: betterProduct.health_score
+            },
+            swap_type: original.brand === betterProduct.brand ? 'same_brand' : 'cross_brand',
+            reason_main: swapReason,
+            reasons_list: reasons
+        });
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Swap search failed' });
@@ -257,10 +492,15 @@ app.post('/api/chat', async (req, res) => {
                 s.health_score, s.smartest_value_score
             FROM products p
             LEFT JOIN product_scores s ON p.id = s.product_id
-            WHERE LOWER(p.name) LIKE ? OR LOWER(p.brand) LIKE ? OR LOWER(p.category) LIKE ?
+            WHERE (
+                LOWER(p.name) LIKE ? 
+                OR LOWER(p.brand) LIKE ? 
+                OR LOWER(p.category) LIKE ? 
+                OR LOWER(p.dietary_type) LIKE ?
+            )
             ORDER BY s.smartest_value_score DESC
             LIMIT 5
-        `).all(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`);
+        `).all(`%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`, `%${query.toLowerCase()}%`);
 
         let products = localProducts.map(p => ({
             food_id: p.id,
@@ -356,17 +596,47 @@ app.post('/api/chat/personalized', async (req, res) => {
         `).all(userId);
 
         // Search products
-        const products = db.prepare(`
+        const productsRaw = db.prepare(`
             SELECT 
                 p.id, p.brand, p.name, p.image_url, p.category, 
-                p.weight_grams, p.price_local_currency,
-                ps.health_score, ps.smartest_value_score
+                p.weight_grams, p.price_local_currency, p.dietary_type,
+                ps.health_score, ps.smartest_value_score,
+                n.sugar_per_100g, n.salt_per_100g, n.protein_per_100g, 
+                n.fiber_per_100g, n.has_additives
             FROM products p
             LEFT JOIN product_scores ps ON p.id = ps.product_id
-            WHERE p.name LIKE ? OR p.brand LIKE ? OR p.category LIKE ?
+            LEFT JOIN nutrition_facts n ON p.id = n.product_id
+            WHERE (
+                LOWER(p.name) LIKE ? 
+                OR LOWER(p.brand) LIKE ? 
+                OR LOWER(p.category) LIKE ? 
+                OR LOWER(p.dietary_type) LIKE ?
+            )
             ORDER BY ps.health_score DESC
             LIMIT 10
-        `).all(`%${query}%`, `%${query}%`, `%${query}%`);
+        `).all(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
+
+        const products = productsRaw.map(p => ({
+            food_id: p.id,
+            food_name: `${p.brand} ${p.name}`,
+            brand_name: p.brand,
+            product_image: p.image_url,
+            food_description: `${p.weight_grams}g | £${(p.price_local_currency || 0).toFixed(2)} | ${p.dietary_type}`,
+            category: p.category,
+            price_local_currency: p.price_local_currency || 0,
+            nutrition: {
+                sugar: p.sugar_per_100g,
+                salt: p.salt_per_100g,
+                protein: p.protein_per_100g,
+                fiber: p.fiber_per_100g,
+                has_additives: p.has_additives
+            },
+            scores: {
+                health_score: p.health_score,
+                value_score: p.smartest_value_score
+            },
+            source: 'local'
+        }));
 
         // Build personalized context for AI
         const context = {

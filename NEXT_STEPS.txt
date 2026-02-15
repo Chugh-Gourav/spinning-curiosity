@@ -1,0 +1,31 @@
+VOTTAM - Next Steps Reference
+==============================
+
+LIVE APP: https://Chugh-Gourav.github.io/spinning-curiosity/
+API: https://vottam-api-595396735241.us-central1.run.app
+
+CURRENT STATE:
+- Prototype working with 39 products
+- SQLite on Cloud Run (ephemeral - data can reset)
+- AI search is basic placeholder
+
+NEXT STEPS:
+1.  **[OPTION A] Test Locally (Recommended since gcloud is missing)**:
+    - Terminal 1 (Backend): `cd server && node index.js`
+    - Terminal 2 (Frontend): `cd client && npm run dev`
+    - Open: `http://localhost:5173`
+
+2.  **[OPTION B] Deploy to Cloud (Requires installing gcloud SDK)**:
+    - Install SDK: https://cloud.google.com/sdk/docs/install
+    - Login: `gcloud auth login`
+    - Deploy: `cd server && gcloud run deploy --source .`
+
+3.  Migrate to persistent database (Cloud SQL / Firebase / Supabase)
+
+FRIEND FEEDBACK MESSAGE:
+------------------------
+Hey! I built a prototype called VOTTAM - Yuka is the main competitor, but I'm thinking about the positioning. Can you try it and give me honest feedback?
+
+👉 https://Chugh-Gourav.github.io/spinning-curiosity/
+
+Try searching for "oatly" or "peanut butter", toggle AI Search, and tell me: What's useful? What's confusing? What would make you actually use this?

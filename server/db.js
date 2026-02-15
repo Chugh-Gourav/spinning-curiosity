@@ -62,7 +62,10 @@ function initDb() {
     const demoUsers = [
         { username: 'gourav', password: 'demo123', preferences: { diet: 'Vegan', health: 'Diabetic' } },
         { username: 'sarah', password: 'demo123', preferences: { diet: 'Keto', health: 'Weight Loss' } },
-        { username: 'mike', password: 'demo123', preferences: { diet: 'Vegetarian', health: 'High Protein' } }
+        { username: 'mike', password: 'demo123', preferences: { diet: 'Vegetarian', health: 'High Protein' } },
+        { username: 'emma', password: 'demo123', preferences: { diet: 'Keto', health: 'Low Carb' } },
+        { username: 'david', password: 'demo123', preferences: { diet: 'Low Sodium', health: 'Heart Health' } },
+        { username: 'sophia', password: 'demo123', preferences: { diet: 'Organic', health: 'General Wellness' } }
     ];
 
     for (const user of demoUsers) {

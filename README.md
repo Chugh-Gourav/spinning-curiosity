@@ -263,31 +263,15 @@ npm run deploy  # Builds + pushes to gh-pages branch
 # Re-deploy via: gcloud run deploy (requires Dockerfile)
 ```
 
----
+# 2. Run Backend (Port 3000)
+cd server && npm install && npm start
 
-## 🎓 Interview Talking Points
-
-### System Design
-- **Why SQLite?** Zero-config, single file, perfect for prototypes. Trade-off: doesn't scale horizontally.
-- **Why HashRouter?** GitHub Pages doesn't support server-side routing. Hash fragments (#/home) work client-side.
-- **Why Cloud Run?** Serverless, auto-scales to zero, pay-per-request. No server management.
-
-### Key Technical Decisions
-1. **Separation of Concerns**: Frontend (presentation) vs Backend (data/logic)
-2. **API-First Design**: Frontend is backend-agnostic, can swap APIs
-3. **Health Score Algorithm**: 60% Nutrition + 30% Additives + 10% Organic bonus
-4. **Personalization Strategy**: Preferences + History → Context → AI Prompt
-
-### Scaling Considerations
-| Current | Production |
-|---------|------------|
-| SQLite | PostgreSQL / Cloud SQL |
-| In-container DB | External managed DB |
-| Single region | Multi-region Cloud Run |
-| No auth | Firebase Auth / OAuth |
+# 3. Run Frontend (Port 5173)
+cd client && npm install && npm run dev
+```
 
 ---
 
 ## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details.
+MIT License - Open Source for Educational Use.
+```

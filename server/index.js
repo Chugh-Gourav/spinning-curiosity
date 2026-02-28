@@ -167,7 +167,50 @@ app.get('/api/products', async (req, res) => {
             // API integration placeholder
         }
 
-        res.json([...localResults, ...apiResults]);
+        const combinedResults = [...localResults, ...apiResults];
+
+        // Ensure products are sorted by health score before sending
+        const scoredProducts = combinedResults.sort((a, b) => b.scores.health_score - a.scores.health_score);
+
+        // Strict Product Limit (Phase 5 Requirement)
+        const LIMITED_PRODUCTS = scoredProducts.slice(0, 6);
+
+        // Step 4: Add Contextual Recommendations via Gemini
+        const isAiMode = req.query.aiMode === 'true';
+        const userId = req.query.userId;
+        let userProfile = null;
+        let aiMessage = null;
+
+        if (userId) {
+            const userRow = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+            if (userRow) {
+                userProfile = JSON.parse(userRow.preferences || '{}');
+            }
+        }
+
+        if (isAiMode && userProfile) {
+            try {
+                // Determine health goals/diet context
+                const context = {
+                    userDiet: userProfile.diet || 'standard',
+                    healthGoals: userProfile.health || 'general wellness',
+                    recentlyViewed: 'nothing yet'
+                };
+
+                // Request personalized insight from Gemini
+                aiMessage = await aiService.generatePersonalizedInsight(query || category || 'Discover', LIMITED_PRODUCTS, context);
+
+                return res.json({
+                    products: LIMITED_PRODUCTS,
+                    ai_suggestion: aiMessage
+                });
+
+            } catch (err) {
+                console.error("Failed to generate AI insight:", err);
+            }
+        }
+
+        return res.json({ products: LIMITED_PRODUCTS });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Search failed' });

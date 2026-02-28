@@ -14,6 +14,14 @@ body {
 }
 
 @layer utilities {
+  .ai-summary-content ul {
+    @apply list-disc list-inside space-y-2 mt-1 ml-1;
+  }
+
+  .ai-summary-content li {
+    @apply text-purple-900 leading-relaxed;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

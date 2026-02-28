@@ -120,9 +120,8 @@ class AIService {
                 INSTRUCTIONS:
                 1. Recommend the BEST product for THIS specific user based on their diet and health goals
                 2. Explain WHY it's best for them (mention their diet/health if relevant)
-                3. If they have scan history, acknowledge their past interests briefly
-                4. Keep response to 2-3 sentences max
-                5. Be conversational and helpful, not robotic
+                3. ALWAYS output your response as a single, valid HTML unordered list (<ul>) with 4-5 concise bullet points (<li>).
+                4. DO NOT include any markdown, introductory text, or concluding text outside the <ul>.
             `;
 
             try {

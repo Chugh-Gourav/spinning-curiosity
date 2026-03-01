@@ -81,6 +81,11 @@ export const ProductSearch = () => {
             });
     }, []);
 
+    // Auto-load products on mount so users see results immediately
+    useEffect(() => {
+        searchProducts('', 'All');
+    }, []);
+
     const searchProducts = async (term, category) => {
         setLoading(true);
         setHasSearched(true);

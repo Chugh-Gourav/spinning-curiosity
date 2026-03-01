@@ -112,14 +112,17 @@ export const ProductSearch = () => {
             const res = await fetch(url, options);
             const data = await res.json();
 
+            // Normalize regardless of API version
+            const fetchedProducts = data.products !== undefined ? data.products : (Array.isArray(data) ? data : []);
+
             if (isAiMode) {
-                setProducts(data.products || []);
-                setAiMessage(data.message || '');
+                setProducts(fetchedProducts);
+                setAiMessage(data.ai_suggestion || data.message || '');
                 setSuggestions(null);
             } else {
-                setProducts(data);
+                setProducts(fetchedProducts);
                 // If no results, fetch suggestions for guided discovery
-                if (data.length === 0) {
+                if (fetchedProducts.length === 0) {
                     fetchSuggestions();
                 } else {
                     setSuggestions(null);

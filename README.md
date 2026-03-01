@@ -47,40 +47,33 @@ A modern, serverless, and AI-native stack designed for scale and agility.
 
 ```mermaid
 graph TD
-    subgraph Frontend [User's Browser (React SPA)]
-        UI[ProductSearch Component]
-        Scan[Scanner Component]
-        Router[HashRouter]
-        UI <--> Router
-        Scan <--> Router
+    subgraph Frontend["🖥️ Frontend — GitHub Pages"]
+        UI["ProductSearch Component"]
+        Scan["Scanner Component"]
+        Sub["Subscription Page"]
+        Router["HashRouter"]
+        UI --- Router
+        Scan --- Router
+        Sub --- Router
     end
 
-    subgraph Cloud [Google Cloud Run]
-        API[Express REST API]
-        AI[Gemini 1.5 Flash Service]
-        Score[Scoring Engine]
-        DB[(SQLite Database)]
-        
-        API -->|Prompts + Context| AI
-        AI -.->|JSON/HTML Analysis| API
+    subgraph Backend["☁️ Backend — Google Cloud Run"]
+        API["Express REST API"]
+        AI["Gemini 1.5 Flash"]
+        Score["Scoring Engine"]
+        DB[("SQLite DB ~400 products")]
+        API -->|"prompt + user context"| AI
+        AI -->|"AI nudge / analysis"| API
         API --> Score
         Score --> DB
     end
 
-    subgraph DataSources [External Data]
-        OpenFood[OpenFoodFacts DB]
+    subgraph Data["📦 External Data"]
+        OFF["Open Food Facts API"]
     end
 
-    Frontend --"HTTPS (fetch)"--> API
-    DB -.->|"Pre-populated (~400 products)"| OpenFood
-    
-    classDef frontend fill:#e8f4f8,stroke:#03a9f4,stroke-width:2px;
-    classDef backend fill:#fce4ec,stroke:#e91e63,stroke-width:2px;
-    classDef external fill:#e8f5e9,stroke:#4caf50,stroke-width:2px;
-    
-    class Frontend frontend;
-    class Cloud backend;
-    class DataSources external;
+    Router -->|"HTTPS fetch"| API
+    DB ---|"pre-populated from"| OFF
 ```
 
 ### 🛠️ Tech Stack Strategy

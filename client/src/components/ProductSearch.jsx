@@ -212,7 +212,7 @@ export const ProductSearch = () => {
                             ))}
                         </select>
                         <button
-                            onClick={() => alert('Premium features coming soon! Stay tuned.')}
+                            onClick={() => navigate('/subscription')}
                             className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
                         >
                             Premium
@@ -377,9 +377,9 @@ export const ProductSearch = () => {
 
                             return (
                                 <div key={product.food_id || product.id} className="flex flex-col gap-2">
-                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden">
+                                    <div className="bg-white rounded-2xl p-4 pt-7 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden">
                                         {product.is_best_in_category && (
-                                            <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-br-lg z-10">
+                                            <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-br-lg" style={{ zIndex: 1 }}>
                                                 🏆 Best in Category
                                             </div>
                                         )}

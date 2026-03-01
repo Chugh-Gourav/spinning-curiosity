@@ -81,10 +81,7 @@ export const ProductSearch = () => {
             });
     }, []);
 
-    // Auto-load products on mount so users see results immediately
-    useEffect(() => {
-        searchProducts('', 'All');
-    }, []);
+
 
     const searchProducts = async (term, category) => {
         setLoading(true);
@@ -199,7 +196,7 @@ export const ProductSearch = () => {
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
                     <div>
                         <h1 className="text-xl font-bold text-green-600 tracking-tight">VOTTAM</h1>
-                        <p className="text-xs text-gray-500 font-medium whitespace-nowrap">Find Organic & Small Businesses</p>
+                        <p className="text-xs text-gray-500 font-medium whitespace-nowrap">Find Organic & Small Business Products</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <select
@@ -217,7 +214,7 @@ export const ProductSearch = () => {
                             ))}
                         </select>
                         <button
-                            onClick={() => navigate('/subscription')}
+                            onClick={() => alert('Premium features coming soon! Stay tuned.')}
                             className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors"
                         >
                             Premium
@@ -382,7 +379,7 @@ export const ProductSearch = () => {
 
                             return (
                                 <div key={product.food_id || product.id} className="flex flex-col gap-2">
-                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden">
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden z-0">
                                         {product.is_best_in_category && (
                                             <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-br-lg z-10">
                                                 🏆 Best in Category

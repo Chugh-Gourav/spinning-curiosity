@@ -81,8 +81,6 @@ export const ProductSearch = () => {
             });
     }, []);
 
-
-
     const searchProducts = async (term, category) => {
         setLoading(true);
         setHasSearched(true);
@@ -114,7 +112,7 @@ export const ProductSearch = () => {
             const res = await fetch(url, options);
             const data = await res.json();
 
-            // Normalize regardless of API version
+            // Normalize: Cloud Run wraps in {products: [...]}, local returns raw array
             const fetchedProducts = data.products !== undefined ? data.products : (Array.isArray(data) ? data : []);
 
             if (isAiMode) {
@@ -379,7 +377,7 @@ export const ProductSearch = () => {
 
                             return (
                                 <div key={product.food_id || product.id} className="flex flex-col gap-2">
-                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden z-0">
+                                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 hover:shadow-md transition-shadow items-stretch relative overflow-hidden">
                                         {product.is_best_in_category && (
                                             <div className="absolute top-0 left-0 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-br-lg z-10">
                                                 🏆 Best in Category

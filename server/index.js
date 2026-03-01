@@ -1,8 +1,29 @@
+/**
+ * VOTTAM Backend API Server
+ *
+ * Express REST API with SQLite database, Gemini AI integration,
+ * and FatSecret API fallback. Deployed on Google Cloud Run.
+ *
+ * Endpoints:
+ *  GET  /health                         → Health check
+ *  GET  /api/users                      → List demo personas
+ *  POST /api/login                      → Authenticate user
+ *  GET  /api/products                   → Search/filter products (main endpoint)
+ *  GET  /api/products/suggestions       → Category & brand suggestions
+ *  GET  /api/products/:id/score-breakdown → Nutrition breakdown with nudges
+ *  GET  /api/products/:id/swap          → Smart Swap (find healthier alternative)
+ *  GET  /api/categories                 → Available product categories
+ *  POST /api/analyze                    → AI product analysis
+ *  POST /api/chat                       → AI search chat
+ *  POST /api/chat/personalized          → Personalized AI chat
+ *  POST /api/scan-history               → Log product view/scan
+ *  GET  /api/user/:id/history           → Get scan history
+ *  GET  /api/user/:id/recommendations   → Personalized recommendations
+ */
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const { initDb, db } = require('./db');
-// import services later
 
 const app = express();
 const PORT = process.env.PORT || 3000;

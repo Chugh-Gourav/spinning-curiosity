@@ -1,12 +1,13 @@
 /**
- * VOTTAM - AI-Powered Shopping Agent
+ * VOTTAM — Value-Optimized Transparent Trading AI Manager
  * 
- * Main App Component
+ * Main Application Router
  * Uses HashRouter for GitHub Pages compatibility (static hosting).
  * 
  * Routes:
- * - #/home (default) - ProductSearch page with AI recommendations
- * - #/scan - Camera scanner for product barcodes
+ *  /home         → ProductSearch (AI recommendations + product grid)
+ *  /scan         → Camera barcode scanner
+ *  /subscription → Premium upgrade page (£4.99/month)
  */
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';

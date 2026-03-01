@@ -194,7 +194,7 @@ export const ProductSearch = () => {
                 <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
                     <div>
                         <h1 className="text-xl font-bold text-green-600 tracking-tight">VOTTAM</h1>
-                        <p className="text-xs text-gray-500 font-medium whitespace-nowrap">Find Organic & Small Business Products</p>
+                        <p className="text-xs text-gray-500 font-medium">Find Organic & Healthy Products</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <select
